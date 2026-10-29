@@ -119,6 +119,14 @@ function jailbreakSuccess(statusMessage) {
             stateEl.textContent = statusMessage;
         }
     }
+
+    // Auto-boot Linux when served from our local exploit host (port 8080)
+    // and GoldHEN was selected (BinLoader on port 9090 becomes available).
+    if (typeof user !== 'undefined' && user.platform === "PS4" &&
+        user.currentJbFlavor === 'GoldHEN' &&
+        typeof isLocalIP === 'function' && isLocalIP(window.location.hostname)) {
+        autoBootLinux();
+    }
 }
 
 function isLocalIP(ip) {
@@ -146,10 +154,9 @@ function toggleVisibility(id, show) {
 
 /**
  * HTTP payload sender to elfldr using GET (ES5 Compatible)
- * 
+ *
  * @param {string} payload_path path to the payload. e.g. /includes/payloads/HEN/nexHEN-ps4.elf
  * @param {function} log - The logging function to use
- * @param {number} timeoutMs - The timeout in milliseconds
  */
 function sendToElfldr(payload_path, log) {
     if (payload_path.indexOf("nexHEN-ps4.bin") !== -1) payload_path = payload_path.replace('.bin', '.elf');
@@ -175,4 +182,23 @@ function sendToElfldr(payload_path, log) {
             log("Error: " + error.message + "\n(elfldr looks to be inaccessible)", 'orange');
             return false;
         });
+}
+
+async function autoBootLinux() {
+    var DELAY = 15;
+    log("GoldHEN loaded — booting Linux in " + DELAY + " s...", "cyan");
+    await sleep(DELAY * 1000);
+    try {
+        log("Sending payloads to BinLoader...", "cyan");
+        var resp = await fetch("/boot", { method: "POST" });
+        var data = await resp.json();
+        if (data.status === "ok") {
+            log("Fan threshold sent. Linux ELF in ~12 s.", "green");
+        } else {
+            log("Boot request failed: " + JSON.stringify(data), "orange");
+        }
+    } catch (e) {
+        log("Auto-boot error: " + e.message, "orange");
+        log("Fallback: python tools/boot_linux.py", "white");
+    }
 }
