@@ -120,11 +120,13 @@ function jailbreakSuccess(statusMessage) {
         }
     }
 
-    // Auto-boot Linux when served from our local exploit host (port 8080)
-    // and GoldHEN was selected (BinLoader on port 9090 becomes available).
+    // Auto-boot Linux only when the URL carries ?autolinux=1 AND the page is
+    // served from our local exploit host AND GoldHEN was selected.
+    // Default (no flag): GoldHEN loads, nothing else happens.
     if (typeof user !== 'undefined' && user.platform === "PS4" &&
         user.currentJbFlavor === 'GoldHEN' &&
-        typeof isLocalIP === 'function' && isLocalIP(window.location.hostname)) {
+        typeof isLocalIP === 'function' && isLocalIP(window.location.hostname) &&
+        new URLSearchParams(window.location.search).get('autolinux') === '1') {
         autoBootLinux();
     }
 }
