@@ -71,5 +71,6 @@ window.lang = {
     "catppuccino": "Catppuccino",
     "jailbreakSuccess": "Jailbreak successful!",
     "alreadyJailbroken": "Already Jailbroken ...",
+    "henAlreadyLoaded": "GoldHEN is already running on this console. Nothing was started.",
     "reloadAfterJbText": "Reload after a successful jailbreak",
 }

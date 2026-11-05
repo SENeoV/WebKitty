@@ -1,7 +1,55 @@
 // @ts-nocheck
 // Jailbreak-related functions
+
+// Asks the host that served this page whether the console already runs GoldHEN (the host checks GoldHEN's FTP port,
+// which a page cannot do). Resolves true only on a definite "loaded"; any error or timeout resolves false, so the page
+// still works when it is opened from the cache with no host around.
+function isHenAlreadyLoaded() {
+  return new Promise(function (resolve) {
+    var settled = false;
+    function settle(value) {
+      if (!settled) { settled = true; resolve(value); }
+    }
+    try {
+      var req = new XMLHttpRequest();
+      req.open('GET', './hen-status?t=' + Date.now(), true);
+      req.timeout = 2500;
+      req.onload = function () {
+        try { settle(req.status === 200 && JSON.parse(req.responseText).loaded === true); } catch (e) { settle(false); }
+      };
+      req.onerror = req.ontimeout = function () { settle(false); };
+      req.send();
+    } catch (e) {
+      settle(false);
+    }
+    setTimeout(function () { settle(false); }, 3000);
+  });
+}
+
+// Running the exploit a second time on a console that already has GoldHEN crashes it. Stop here, and disarm the
+// auto-retry, which would otherwise run the exploit again whenever this page is reopened in the same tab.
+function refuseBecauseHenLoaded() {
+  if (autoJbInterval) {
+    clearInterval(autoJbInterval);
+    autoJbInterval = null;
+  }
+  storage.session.set('autoJbRetry', false);
+  storage.session.remove('jailbreakNow');
+  var msg = (window.lang && window.lang.henAlreadyLoaded) || 'GoldHEN is already running on this console. Nothing was started.';
+  if (ui.clickToStartText) {
+    ui.clickToStartText.textContent = msg;
+    ui.clickToStartText.style.fontSize = '15px';
+  }
+  if (typeof log === 'function') log(msg, 'green');
+}
+
 async function jailbreak() {
   if (!isPS4Console() && !devMode) return;
+
+  if (await isHenAlreadyLoaded()) {
+    refuseBecauseHenLoaded();
+    return;
+  }
 
   // clear terminal
   ui.consoleElement.textContent = '';
